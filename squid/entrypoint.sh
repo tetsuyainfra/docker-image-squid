@@ -29,38 +29,14 @@ if [ ! -f /etc/ssl/private/ssl-cert-snakeoil.key ]; then
     /usr/sbin/make-ssl-cert generate-default-snakeoil --force-overwrite > /dev/null 2>&1
 fi
 
-SQUID_CONF="/etc/squid/squid.conf"
-CACHE_DIR=${CACHE_DIR:-ufs /var/cache/squid 10000 16 256}
-MAXIMUM_OBJECT_SIZE=${MAXIMUM_OBJECT_SIZE:-512 MB}
-CACHE_MEM=${CACHE_MEM:-256 MB}
-MAX_FILEDESCRIPTORS=${MAX_FILEDESCRIPTORS:-1024}
-sed -i -e "s|cache_dir .*|cache_dir ${CACHE_DIR}|" ${SQUID_CONF}
-sed -i -e "s/maximum_object_size .*/maximum_object_size ${MAXIMUM_OBJECT_SIZE}/" ${SQUID_CONF}
-sed -i -e "s/cache_mem .*/cache_mem ${CACHE_MEM}/" ${SQUID_CONF}
-sed -i -e "s/max_filedescriptors .*/max_filedescriptors ${MAX_FILEDESCRIPTORS}/" ${SQUID_CONF}
-
-
-# example:
-#    SQUID_HTTPS_USERS="user1@password1 user2@password2 user3@password3"
-# separator is @, so dont use @ in username or password
-#
-SQUID_HTTPS_USERS=${SQUID_HTTPS_USERS}
-HTPASSWD_CONF=$(dirname ${SQUID_CONF})/htpasswd.users
-touch ${HTPASSWD_CONF}
-for user in $SQUID_HTTPS_USERS; do
-    IFS='@' read -r username password <<< "$user"
-    echo "Adding user: $username with password: $password"
-    htpasswd -b -B ${HTPASSWD_CONF} "$username" "$password"
-done
-
 # Change cache,log directory ownership and permissions
 chown proxy:proxy /var/cache/squid
 chown proxy:proxy /var/log/squid
 
-# tail -F /var/log/squid/access.log 2>/dev/null &
-# tail -F /var/log/squid/error.log 2>/dev/null &
-# tail -F /var/log/squid/store.log 2>/dev/null &
-# tail -F /var/log/squid/cache.log 2>/dev/null &
+tail -F /var/log/squid/access.log 2>/dev/null &
+tail -F /var/log/squid/error.log 2>/dev/null &
+tail -F /var/log/squid/store.log 2>/dev/null &
+tail -F /var/log/squid/cache.log 2>/dev/null &
 # create missing cache directories and exit
 /usr/sbin/squid -Nz
 
